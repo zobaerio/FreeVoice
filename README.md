@@ -19,6 +19,18 @@ Open the repository's **Releases** page and download:
 
 Windows installer provides a normal setup wizard, Start Menu shortcut, Desktop shortcut, installation-folder selection, and Windows uninstall entry.
 
+## Motion Graphics Studio (Windows-first)
+
+Open **Motion Studio** from the FreeVoice desktop/home screen. The first foundation release includes:
+- An independent 16:9 scene editor with editable text, rectangles and circles.
+- Layer selection, color, position, size, timing and entrance-animation controls.
+- A multi-layer timeline and live playback preview.
+- Local audio import for soundtrack preview.
+- Local save/restore and portable `.fvmotion` editable project files.
+- SVG scene export for vector editing in compatible design tools.
+
+This is a local-first editor foundation, not yet a finished MP4 renderer. Advanced keyframe curves, media/video tracks, transitions, captions, 3D scenes, prompt-to-storyboard generation and final MP4 export are planned as later phases. The project does not call Cartesia or any paid video-generation API. Imported audio remains on the device.
+
 ## Build Android APK locally
 Requires Node.js 20+, Java 21 and Android SDK.
 
