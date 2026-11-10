@@ -247,6 +247,31 @@ async function saveIndicF5Settings(patch) {
 }
 
 ipcMain.handle('indicf5:get-settings', async () => readIndicF5Settings());
+ipcMain.handle('indicf5:diagnostics', async () => {
+  if (process.platform !== 'win32') throw new Error('IndicF5 diagnostics are currently supported in the Windows desktop app only.');
+  const saved = JSON.parse(await fs.readFile(indicF5SettingsFile(), 'utf8').catch(() => '{}'));
+  if (!saved.pythonPath) throw new Error('Select your Python environment first.');
+  await fs.access(saved.pythonPath).catch(() => { throw new Error('The selected Python executable could not be found. Select it again.'); });
+  const scriptPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'python', 'indicf5_diagnostics.py')
+    : path.join(__dirname, 'indicf5_diagnostics.py');
+  await fs.access(scriptPath).catch(() => { throw new Error('The IndicF5 diagnostics script is missing. Reinstall FreeVoice.'); });
+  const args = [scriptPath, '--model-dir', saved.modelPath || '', '--reference-audio', saved.referencePath || ''];
+  try {
+    const { stdout } = await execFileAsync(saved.pythonPath, args, {
+      windowsHide: true, timeout: 90000, maxBuffer: 1024 * 1024
+    });
+    const result = JSON.parse(stdout.trim());
+    return result;
+  } catch (error) {
+    const output = String(error.stdout || '').trim();
+    if (output) {
+      try { return JSON.parse(output); } catch {}
+    }
+    throw new Error(('Could not run IndicF5 diagnostics: ' + (error.stderr || error.message || error)).slice(0, 900));
+  }
+});
+
 
 ipcMain.handle('indicf5:choose-python', async () => {
   if (process.platform !== 'win32') throw new Error('IndicF5 is currently supported in the Windows desktop app only.');
