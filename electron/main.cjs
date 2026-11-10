@@ -1,12 +1,12 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, dialog, shell } = require('electron');
 const path = require('node:path');
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 900,
-    minWidth: 900,
-    minHeight: 680,
+    minWidth: 760,
+    minHeight: 620,
     title: 'FreeVoice',
     backgroundColor: '#07111e',
     autoHideMenuBar: true,
@@ -15,6 +15,21 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true
     }
+  });
+
+  win.webContents.session.on('will-download', async (event, item) => {
+    item.pause();
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Save FreeVoice audio',
+      defaultPath: path.join(app.getPath('downloads'), item.getFilename()),
+      buttonLabel: 'Save audio'
+    });
+    if (canceled || !filePath) {
+      item.cancel();
+      return;
+    }
+    item.setSavePath(filePath);
+    item.resume();
   });
 
   win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
