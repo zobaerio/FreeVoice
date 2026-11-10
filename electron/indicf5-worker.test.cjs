@@ -80,7 +80,6 @@ test('restarts after a worker crash and ignores the stale process close event', 
     },
     timeoutMs: 1000
   });
-  const firstChild = children.length ? children[0] : null;
   const first = worker.request('python.exe', 'worker.py', { text: 'first' });
   await first;
   const crashed = children[0];
@@ -93,7 +92,6 @@ test('restarts after a worker crash and ignores the stale process close event', 
   assert.equal(third.ok, true);
   assert.equal(children.length, 2);
   worker.stop();
-  void firstChild;
 });
 
 test('a timed-out old worker cannot detach a newly started worker', async () => {
