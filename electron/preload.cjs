@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('freevoiceDesktop', Object.freeze({
   choosePiperModel: () => ipcRenderer.invoke('piper:choose-model'),
   synthesizePiper: (request) => ipcRenderer.invoke('piper:synthesize', request),
   getIndicF5Settings: () => ipcRenderer.invoke('indicf5:get-settings'),
+  diagnoseIndicF5: () => ipcRenderer.invoke('indicf5:diagnostics'),
   chooseIndicF5Python: () => ipcRenderer.invoke('indicf5:choose-python'),
   chooseIndicF5Model: () => ipcRenderer.invoke('indicf5:choose-model'),
   chooseIndicF5Reference: () => ipcRenderer.invoke('indicf5:choose-reference'),
