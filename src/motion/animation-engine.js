@@ -1,7 +1,8 @@
 export function readAnimatedValue(element, property, time, fallback) {
   const frames = (element.keyframes || []).filter(frame => Number.isFinite(frame.time) && Number.isFinite(frame[property])).slice().sort((a,b)=>a.time-b.time);
   if (!frames.length) return fallback;
-  if (time <= frames[0].time) return frames[0][property];
+  if (time < frames[0].time) return fallback;
+  if (time === frames[0].time) return frames[0][property];
   if (time >= frames[frames.length-1].time) return frames[frames.length-1][property];
   const index=frames.findIndex(frame=>frame.time>=time), left=frames[index-1], right=frames[index];
   const p=Math.max(0,Math.min(1,(time-left.time)/Math.max(.0001,right.time-left.time)));

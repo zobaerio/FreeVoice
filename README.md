@@ -1,5 +1,7 @@
 # FreeVoice — Zobaerio Technologies
 
+> **Offline migration status:** The current app still uses the legacy Cartesia TTS integration and optional OpenAI script writer. Fully local/offline voice generation and local script writing are not integrated yet. Do not treat the current build as an offline voice app. The migration plan is tracked in `docs/LOCAL-VOICE-ENGINE.md`; Cartesia-dependent PR #6 must remain unmerged until a tested local replacement is ready.
+
 FreeVoice is available as an installable Android app and Windows desktop app. The complete interface is bundled locally in each app. **No Vercel, website hosting, or Zobaerio backend is required.**
 
 ## Features
