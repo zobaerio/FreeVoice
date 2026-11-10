@@ -33,23 +33,10 @@
   "build": {
     "appId": "com.zobaerio.freevoice",
     "productName": "FreeVoice",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "package.json"
-    ],
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "electron/**/*", "package.json"],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
       "artifactName": "FreeVoice-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {
@@ -62,14 +49,9 @@
       "uninstallDisplayName": "FreeVoice"
     },
     "extraResources": [
-      {
-        "from": "electron/indicf5_runner.py",
-        "to": "python/indicf5_runner.py",
-      {
-        "from": "electron/indicf5_diagnostics.py",
-        "to": "python/indicf5_diagnostics.py"
-      }
-      }
+      { "from": "electron/indicf5_runner.py", "to": "python/indicf5_runner.py" },
+      { "from": "electron/indicf5_diagnostics.py", "to": "python/indicf5_diagnostics.py" },
+      { "from": "electron/indicf5_worker.py", "to": "python/indicf5_worker.py" }
     ]
   }
 }
