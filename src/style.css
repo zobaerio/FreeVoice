@@ -37,3 +37,10 @@
 .piper-file b{font-size:10px;color:#d8eaff}
 .piper-file small{font-size:9px;color:#829ab5;margin-top:5px;overflow-wrap:anywhere}
 .piper-file .secondary{height:34px;white-space:nowrap;padding:0 10px;font-size:9px}
+
+/* IndicF5 environment diagnostic results */
+.diagnostic-panel{margin:12px 0;padding:12px;background:#091a2b;border:1px solid #29445e;border-radius:10px}
+.diagnostic-panel>b{display:block;color:#d8eaff;font-size:12px;margin-bottom:7px}
+.diagnostic-row{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(0,1.5fr);gap:10px;padding:7px 0;border-top:1px solid #1d354b;font-size:10px}
+.diagnostic-row span{color:#c8dcf2;font-weight:650}
+.diagnostic-row small{color:#8fa6c0;overflow-wrap:anywhere}

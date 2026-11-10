@@ -42,7 +42,7 @@ jobs:
       - name: Test motion and local engine helpers
         run: npm test
       - name: Validate IndicF5 Python runner syntax
-        run: python -m py_compile electron/indicf5_runner.py
+        run: python -m py_compile electron/indicf5_runner.py electron/indicf5_diagnostics.py
       - name: Smoke-test Windows offline speech runtime
         shell: pwsh
         run: ./electron/scripts/windows-tts-smoke-test.ps1
