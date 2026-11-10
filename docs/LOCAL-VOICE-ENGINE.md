@@ -1,45 +1,46 @@
-# FreeVoice Local Voice Engine — Product Plan
+# FreeVoice Local Voice Engine
 
 ## Product decision
 
-FreeVoice should be able to generate speech without Cartesia, OpenAI, ElevenLabs, Google, or another hosted speech API. The target architecture is local-first and offline after the user installs the selected model assets.
+FreeVoice targets local-first voice generation. The application, editor, project format, audio pipeline and model manager are Zobaerio-owned. Third-party runtimes and voice models retain their own notices and licences.
 
-The application, editor, project format, audio pipeline, and model manager are Zobaerio-owned. Speech models and runtimes remain third-party open-source components and must retain their required notices and licences.
+## Windows engine tiers
 
-## Engine tiers
+1. Windows System.Speech: lightweight offline baseline. Quality and language availability depend on installed Windows voices.
+2. Piper: optional local neural TTS for compatible ONNX models. The user supplies the Piper executable and ONNX plus matching ONNX JSON model pair. Piper runtime is GPL-3.0; each voice model has a separate licence. Piper's standard official voice catalogue does not currently provide Bengali.
+3. IndicF5 (experimental): Bengali-capable reference-conditioned neural synthesis. The user supplies a Python 3.10 environment, a local AI4Bharat IndicF5 model snapshot, a WAV reference voice and the exact transcript spoken in that WAV. FreeVoice invokes a bundled Python runner with shell disabled; the runner loads the selected model with local_files_only enabled, so generation does not download model files or call a hosted API. The official model supports Bengali among 11 languages and uses reference audio plus reference transcript as inputs. The upstream model card identifies the model as MIT-licensed; review the complete upstream and dataset notices before redistribution. The model is larger and more demanding than Piper; no low-end CPU performance or voice similarity guarantee is made.
+4. Indic-Speak research candidate: supports Bengali and English but is a roughly 3.78B-parameter model and currently uses a model-specific licence with upstream Llama/SNAC/Vocos obligations. It is not the default target for lower-spec PCs or cloning because it uses preset voices rather than personal reference-voice cloning.
 
-1. **Lightweight offline voices:** Piper-class ONNX/runtime voices for lower-spec Windows PCs. These are preset voices, not personal voice cloning. Check the licence of every voice asset independently.
-2. **Natural neural voices:** Kokoro-class local models for supported languages and hardware. These do not provide arbitrary personal voice cloning.
-3. **Personal voice cloning:** Evaluate Chatterbox multilingual and other commercially usable local model candidates. Do not ship any model until its code, weights, dataset terms, redistribution terms, output restrictions, and language support have been checked.
-4. **Language validation:** Bengali is a must-test language. Do not claim Bengali support or high-fidelity Bengali cloning until native-speaker listening tests pass. Keep language support model-specific rather than assuming every engine supports every language.
+## IndicF5 Windows setup
 
-## Desktop architecture
+1. Install Python 3.10 and create a dedicated virtual environment.
+2. Install the official AI4Bharat IndicF5 package and its dependencies using the upstream instructions: https://github.com/AI4Bharat/IndicF5. The repository includes requirements-indicf5.txt as a starting point.
+3. Download the official ai4bharat/IndicF5 model snapshot to a local folder before going offline.
+4. In FreeVoice choose the virtual environment's python.exe, the downloaded model folder and a WAV reference recording.
+5. Enter the exact words spoken in the reference WAV. Use only your own voice or a speaker who has explicitly consented.
+6. Generate after setup. The local runner uses local_files_only=True; if files or dependencies are missing it reports an error rather than falling back to a cloud service.
 
-- Electron main process owns the local engine lifecycle and secure IPC boundary.
-- A managed local worker/runtime generates audio on the user's computer.
-- Model files are optional, downloaded by the user on first setup, with disk-space estimates and integrity checks.
-- Voice samples and generated audio stay on-device by default.
-- No API key, account, cloud queue, remote generation endpoint, or metered character billing.
-- Users may import their own audio and may clone only their own voice or a voice for which they have explicit permission.
-- Provide CPU mode and optional GPU acceleration; show estimated performance and memory needs.
-- Keep a small default installer; download large models separately and let users choose the storage drive.
+IndicF5 reference conditioning is not a guarantee of an identical clone. A human Bengali listening test is required before claiming production-quality Bangladeshi pronunciation. Keep the reference WAV on-device and remove it when no longer needed.
 
-## Migration sequence
+## IndicF5 implementation notes
 
-1. **Windows system-voice tier:** offline WAV generation uses installed Windows System.Speech voices through a secure Electron preload/IPC bridge. Quality and language availability depend on Windows speech packs.
-2. **Piper neural TTS adapter (in progress):** Windows desktop can point to a user-installed Piper executable and a local `.onnx` voice model with its matching `.onnx.json` config. The app invokes Piper as a local child process (no shell, no network request), validates the model/config pair, and writes WAV output to a temporary app directory. Runtime and models are not bundled or downloaded by FreeVoice. Piper's current official standard voice list does not include Bengali; do not present it as a Bengali solution. Piper runtime is GPL-3.0; model/voice licences are separate and must be reviewed individually before redistribution or commercial use. See the official project and CLI guide: https://github.com/OHF-Voice/piper1-gpl and https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/CLI.md.
-3. Verify offline generation, voice selection, Unicode/Bengali behavior, cancellation, and packaging on real Windows devices.
-4. Add a commercially usable local cloning engine after code/weights/dataset licence and language review.
-5. Migrate voice profiles to local files and update project metadata.
-6. Remove legacy Cartesia endpoints and API key fields after local neural TTS and cloning pass acceptance tests; do not merge Cartesia-dependent PR #6.
-7. Build Android-native offline inference only after the Windows engine is stable; some larger models may not fit mobile devices.
+- Electron main process owns process spawning and file access.
+- Renderer reaches the engine only through the context-isolated preload bridge.
+- Python executable, model folder and reference WAV paths are stored in the app user-data directory.
+- The runner is packaged as a resource outside ASAR.
+- Python arguments are passed as an array with shell disabled.
+- Output WAV is created in a temporary directory, read by the app and deleted in a finally block.
+- The app never sends voice samples or scripts to a remote endpoint from this engine.
+- First-time Python/model installation and model download require user setup; inference after setup is local.
 
-## Acceptance tests
+## Safety and licence requirements
 
-- Airplane-mode TTS generation after model installation.
-- No outbound network request during speech generation.
-- No API key required.
-- Voice sample never leaves the device.
-- Model/voice licence notices included in installer and About screen.
-- Bengali and English quality reviewed separately by human listeners.
-- Low-memory behavior, cancellation, progress reporting, and recovery from interrupted model downloads.
+- Only use the reference speaker's own voice or obtain explicit permission.
+- Do not use this feature for impersonation, fraud or deceptive identity claims.
+- Include upstream model/runtime notices when redistributing any dependency.
+- Check the complete model, code, dataset and upstream component licences before bundling weights in a commercial installer.
+- Do not bundle model weights in the default installer; let users choose the model location.
+
+## Android roadmap
+
+Android-native local inference remains a separate milestone. Do not claim Android offline neural TTS until the model can be packaged or downloaded safely, run within mobile RAM/storage limits, and pass physical-device tests.
