@@ -3,7 +3,7 @@ name: Build Windows Desktop Installer
 on:
   workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [main, feature/windows-desktop-installer]
     paths:
       - 'src/**'
       - 'electron/**'
