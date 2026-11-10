@@ -1,14 +1,16 @@
 {
-  "name": "freevoice-android",
+  "name": "freevoice",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "android:add": "cap add android",
-    "android:sync": "cap sync android"
+    "android:sync": "cap sync android",
+    "desktop:package": "npm run build && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -22,7 +24,39 @@
   "devDependencies": {
     "@capacitor/cli": "^7.4.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12",
     "vite": "^6.0.7",
     "typescript": "^5.7.3"
+  },
+  "build": {
+    "appId": "com.zobaerio.freevoice",
+    "productName": "FreeVoice",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "FreeVoice-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FreeVoice",
+      "uninstallDisplayName": "FreeVoice"
+    }
   }
 }

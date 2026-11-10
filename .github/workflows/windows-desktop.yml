@@ -1,0 +1,56 @@
+name: Build Windows Desktop Installer
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'electron/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.js'
+      - '.github/workflows/windows-desktop.yml'
+  push:
+    branches: [main, feature/windows-desktop-installer]
+    paths:
+      - 'src/**'
+      - 'electron/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.js'
+      - '.github/workflows/windows-desktop.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Build and package Windows installer
+        run: npm run desktop:package
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeVoice-Windows-Installer
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish installer to GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: freevoice-windows-build-${{ github.run_number }}
+          name: FreeVoice Windows Desktop Build ${{ github.run_number }}
+          prerelease: true
+          generate_release_notes: true
+          files: release/*.exe
