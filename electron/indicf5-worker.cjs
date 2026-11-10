@@ -15,7 +15,7 @@ class IndicF5Worker {
   }
 
   start(pythonPath, workerPath) {
-    if (this.child && !this.child.killed) return;
+    if (this.child) return this.child;
     this.stopped = false;
     const child = this.spawnProcess(pythonPath, ['-u', workerPath], {
       windowsHide: true, shell: false, stdio: ['pipe', 'pipe', 'pipe']
@@ -25,15 +25,28 @@ class IndicF5Worker {
     this.stderr = '';
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
-    child.stdout.on('data', chunk => this.onData(chunk));
+    child.stdout.on('data', chunk => {
+      if (this.child === child) this.onData(chunk);
+    });
     child.stderr.on('data', chunk => {
-      this.stderr = (this.stderr + chunk).slice(-16000);
+      if (this.child === child) this.stderr = (this.stderr + chunk).slice(-16000);
     });
-    child.on('error', error => this.failAll(new Error('Could not start IndicF5 worker: ' + error.message)));
-    child.on('close', code => {
+    child.on('error', error => {
+      if (this.child !== child) return;
       this.child = null;
-      if (!this.stopped) this.failAll(new Error(('IndicF5 worker stopped (code ' + code + '): ' + this.stderr).slice(0, 1400)));
+      this.failAll(new Error('Could not start IndicF5 worker: ' + error.message));
+      if (!child.killed) child.kill();
     });
+    child.on('close', code => {
+      // A timed-out worker may close after a replacement has already started.
+      // Never let an old process event detach or fail requests for the new one.
+      if (this.child !== child) return;
+      this.child = null;
+      if (!this.stopped) {
+        this.failAll(new Error(('IndicF5 worker stopped (code ' + code + '): ' + this.stderr).slice(0, 1400)));
+      }
+    });
+    return child;
   }
 
   onData(chunk) {
@@ -64,24 +77,24 @@ class IndicF5Worker {
   }
 
   request(pythonPath, workerPath, payload) {
-    if (this.stopped) this.stopped = false;
-    this.start(pythonPath, workerPath);
+    const child = this.start(pythonPath, workerPath);
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(new Error('IndicF5 timed out. The worker will restart on the next request.'));
-        this.stop();
+        if (this.child === child) this.stop();
       }, this.timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       const message = JSON.stringify({ ...payload, id }) + '\n';
-      this.child.stdin.write(message, error => {
+      child.stdin.write(message, error => {
         if (!error) return;
         const item = this.pending.get(id);
         if (!item) return;
         clearTimeout(item.timer);
         this.pending.delete(id);
         item.reject(new Error('Could not send request to IndicF5 worker: ' + error.message));
+        if (this.child === child) this.stop();
       });
     });
   }
