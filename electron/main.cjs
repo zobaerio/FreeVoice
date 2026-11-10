@@ -5,6 +5,8 @@ const crypto = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
 const { buildPiperArgs, modelConfigPath, describePiperModel, isOnnxModelPath } = require('./piper-engine.cjs');
 const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isIndicF5ModelSnapshot, isWavFile } = require('./indicf5-engine.cjs');
+const { IndicF5Worker } = require('./indicf5-worker.cjs');
+const indicF5Worker = new IndicF5Worker();
 const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
@@ -331,40 +333,21 @@ ipcMain.handle('indicf5:synthesize', async (_event, request = {}) => {
   await fs.access(saved.pythonPath).catch(() => { throw new Error('The selected Python executable could not be found. Select it again.'); });
   await fs.access(saved.modelPath).catch(() => { throw new Error('The selected IndicF5 model folder could not be found. Select it again.'); });
   await fs.access(saved.referencePath).catch(() => { throw new Error('The selected reference WAV could not be found. Select it again.'); });
-  const runnerPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'python', 'indicf5_runner.py')
-    : path.join(__dirname, 'indicf5_runner.py');
-  await fs.access(runnerPath).catch(() => { throw new Error('The bundled IndicF5 runner is missing. Reinstall FreeVoice.'); });
+  const workerPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'python', 'indicf5_worker.py')
+    : path.join(__dirname, 'indicf5_worker.py');
+  await fs.access(workerPath).catch(() => { throw new Error('The bundled IndicF5 worker is missing. Reinstall FreeVoice.'); });
   const outputDir = path.join(app.getPath('temp'), 'FreeVoice', 'generated');
   await fs.mkdir(outputDir, { recursive: true });
   const fileName = 'FreeVoice-IndicF5-' + Date.now() + '-' + crypto.randomUUID().slice(0, 8) + '.wav';
   const outputPath = path.join(outputDir, fileName);
-  const args = buildIndicF5Args(runnerPath, saved.modelPath, saved.referencePath, outputPath, text, refText);
   try {
-    await new Promise((resolve, reject) => {
-      const child = spawn(saved.pythonPath, args, { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
-      let stderr = '';
-      let settled = false;
-      const timer = setTimeout(() => {
-        if (settled) return;
-        child.kill();
-        settled = true;
-        reject(new Error('IndicF5 timed out. Try a shorter script or use the lightweight Windows/Piper engine.'));
-      }, 600000);
-      child.stderr.on('data', chunk => { if (stderr.length < 16000) stderr += chunk.toString(); });
-      child.on('error', error => {
-        if (settled) return;
-        clearTimeout(timer);
-        settled = true;
-        reject(new Error('Could not start the selected Python environment. Check that IndicF5 dependencies are installed. ' + error.message));
-      });
-      child.on('close', code => {
-        if (settled) return;
-        clearTimeout(timer);
-        settled = true;
-        if (code === 0) resolve();
-        else reject(new Error(('IndicF5 failed with exit code ' + code + ': ' + stderr).slice(0, 900)));
-      });
+    await indicF5Worker.request(saved.pythonPath, workerPath, {
+      model_dir: saved.modelPath,
+      reference_audio: saved.referencePath,
+      output: outputPath,
+      text,
+      reference_text: refText
     });
     const stat = await fs.stat(outputPath);
     if (!stat.isFile() || stat.size < 44) throw new Error('IndicF5 did not create a valid WAV file.');
@@ -421,6 +404,10 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('before-quit', () => {
+  indicF5Worker.stop();
 });
 
 app.on('window-all-closed', () => {
