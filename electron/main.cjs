@@ -4,6 +4,7 @@ const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
 const { buildPiperArgs, modelConfigPath, describePiperModel, isOnnxModelPath } = require('./piper-engine.cjs');
+const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isWavFile } = require('./indicf5-engine.cjs');
 const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
@@ -207,6 +208,138 @@ ipcMain.handle('piper:synthesize', async (_event, request = {}) => {
     });
     const stat = await fs.stat(outputPath);
     if (!stat.isFile() || stat.size < 44) throw new Error('Piper did not create a valid WAV file.');
+    const data = new Uint8Array(await fs.readFile(outputPath));
+    return { fileName, mimeType: 'audio/wav', data };
+  } finally {
+    await fs.unlink(outputPath).catch(() => {});
+  }
+});
+
+
+const indicF5SettingsFile = () => path.join(app.getPath('userData'), 'indicf5-settings.json');
+
+async function readIndicF5Settings() {
+  try {
+    const saved = JSON.parse(await fs.readFile(indicF5SettingsFile(), 'utf8'));
+    const pythonExists = saved.pythonPath && await fs.access(saved.pythonPath).then(() => true, () => false);
+    const modelExists = saved.modelPath && await fs.access(saved.modelPath).then(() => true, () => false);
+    const referenceExists = saved.referencePath && await fs.access(saved.referencePath).then(() => true, () => false);
+    return {
+      ready: Boolean(pythonExists && modelExists && referenceExists),
+      pythonName: saved.pythonPath ? path.basename(saved.pythonPath) : '',
+      modelName: saved.modelPath ? path.basename(saved.modelPath) : '',
+      referenceName: saved.referencePath ? path.basename(saved.referencePath) : ''
+    };
+  } catch {
+    return { ready: false, pythonName: '', modelName: '', referenceName: '' };
+  }
+}
+
+async function saveIndicF5Settings(patch) {
+  let current = {};
+  try { current = JSON.parse(await fs.readFile(indicF5SettingsFile(), 'utf8')); } catch {}
+  const next = { ...current, ...patch };
+  await fs.mkdir(app.getPath('userData'), { recursive: true });
+  const tempPath = indicF5SettingsFile() + '.tmp';
+  await fs.writeFile(tempPath, JSON.stringify(next, null, 2), 'utf8');
+  await fs.rename(tempPath, indicF5SettingsFile());
+  return readIndicF5Settings();
+}
+
+ipcMain.handle('indicf5:get-settings', async () => readIndicF5Settings());
+
+ipcMain.handle('indicf5:choose-python', async () => {
+  if (process.platform !== 'win32') throw new Error('IndicF5 is currently supported in the Windows desktop app only.');
+  const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    title: 'Select Python 3.10 environment executable',
+    properties: ['openFile'],
+    filters: [{ name: 'Python executable', extensions: ['exe'] }]
+  });
+  if (result.canceled || !result.filePaths[0]) return readIndicF5Settings();
+  const pythonPath = result.filePaths[0];
+  if (!isPythonExecutable(pythonPath)) throw new Error('Select a python.exe executable.');
+  await fs.access(pythonPath);
+  return saveIndicF5Settings({ pythonPath });
+});
+
+ipcMain.handle('indicf5:choose-model', async () => {
+  if (process.platform !== 'win32') throw new Error('IndicF5 is currently supported in the Windows desktop app only.');
+  const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    title: 'Select the downloaded AI4Bharat IndicF5 model folder',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (result.canceled || !result.filePaths[0]) return readIndicF5Settings();
+  const modelPath = result.filePaths[0];
+  if (!isModelDirectory(modelPath)) throw new Error('Select a local IndicF5 model folder.');
+  await fs.access(modelPath);
+  return saveIndicF5Settings({ modelPath });
+});
+
+ipcMain.handle('indicf5:choose-reference', async () => {
+  if (process.platform !== 'win32') throw new Error('IndicF5 is currently supported in the Windows desktop app only.');
+  const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    title: 'Select your own or consented reference voice WAV',
+    properties: ['openFile'],
+    filters: [{ name: 'WAV audio', extensions: ['wav'] }]
+  });
+  if (result.canceled || !result.filePaths[0]) return readIndicF5Settings();
+  const referencePath = result.filePaths[0];
+  if (!isWavFile(referencePath)) throw new Error('The reference voice must be a WAV file.');
+  await fs.access(referencePath);
+  return saveIndicF5Settings({ referencePath });
+});
+
+ipcMain.handle('indicf5:synthesize', async (_event, request = {}) => {
+  if (process.platform !== 'win32') throw new Error('IndicF5 is currently available in the Windows desktop app only.');
+  const text = typeof request.text === 'string' ? request.text.trim() : '';
+  const refText = typeof request.refText === 'string' ? request.refText.trim() : '';
+  if (!text) throw new Error('Enter a script before generating audio.');
+  if (text.length > 5000) throw new Error('Maximum 5,000 characters per generation.');
+  if (!refText) throw new Error('Enter the exact transcript spoken in the reference WAV.');
+  if (refText.length > 1200) throw new Error('Reference transcript must be 1,200 characters or fewer.');
+  if (request.consent !== true) throw new Error('Confirm that the reference voice is yours or you have explicit permission to use it.');
+  const saved = JSON.parse(await fs.readFile(indicF5SettingsFile(), 'utf8').catch(() => '{}'));
+  if (!saved.pythonPath || !saved.modelPath || !saved.referencePath) throw new Error('Select Python, a downloaded IndicF5 model folder and a reference WAV first.');
+  await fs.access(saved.pythonPath).catch(() => { throw new Error('The selected Python executable could not be found. Select it again.'); });
+  await fs.access(saved.modelPath).catch(() => { throw new Error('The selected IndicF5 model folder could not be found. Select it again.'); });
+  await fs.access(saved.referencePath).catch(() => { throw new Error('The selected reference WAV could not be found. Select it again.'); });
+  const runnerPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'python', 'indicf5_runner.py')
+    : path.join(__dirname, 'indicf5_runner.py');
+  await fs.access(runnerPath).catch(() => { throw new Error('The bundled IndicF5 runner is missing. Reinstall FreeVoice.'); });
+  const outputDir = path.join(app.getPath('temp'), 'FreeVoice', 'generated');
+  await fs.mkdir(outputDir, { recursive: true });
+  const fileName = 'FreeVoice-IndicF5-' + Date.now() + '-' + crypto.randomUUID().slice(0, 8) + '.wav';
+  const outputPath = path.join(outputDir, fileName);
+  const args = buildIndicF5Args(runnerPath, saved.modelPath, saved.referencePath, outputPath, text, refText);
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(saved.pythonPath, args, { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
+      let stderr = '';
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        child.kill();
+        settled = true;
+        reject(new Error('IndicF5 timed out. Try a shorter script or use the lightweight Windows/Piper engine.'));
+      }, 600000);
+      child.stderr.on('data', chunk => { if (stderr.length < 16000) stderr += chunk.toString(); });
+      child.on('error', error => {
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        reject(new Error('Could not start the selected Python environment. Check that IndicF5 dependencies are installed. ' + error.message));
+      });
+      child.on('close', code => {
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        if (code === 0) resolve();
+        else reject(new Error(('IndicF5 failed with exit code ' + code + ': ' + stderr).slice(0, 900)));
+      });
+    });
+    const stat = await fs.stat(outputPath);
+    if (!stat.isFile() || stat.size < 44) throw new Error('IndicF5 did not create a valid WAV file.');
     const data = new Uint8Array(await fs.readFile(outputPath));
     return { fileName, mimeType: 'audio/wav', data };
   } finally {
