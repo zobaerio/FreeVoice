@@ -10,7 +10,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "android:add": "cap add android",
     "android:sync": "cap sync android",
-    "desktop:package": "npm run build && electron-builder --win nsis --x64"
+    "desktop:package": "npm run build && electron-builder --win nsis --x64",
+    "test": "node --test"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -44,7 +45,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "FreeVoice-Setup-${version}-${arch}.${ext}"
