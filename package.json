@@ -64,7 +64,11 @@
     "extraResources": [
       {
         "from": "electron/indicf5_runner.py",
-        "to": "python/indicf5_runner.py"
+        "to": "python/indicf5_runner.py",
+      {
+        "from": "electron/indicf5_diagnostics.py",
+        "to": "python/indicf5_diagnostics.py"
+      }
       }
     ]
   }
