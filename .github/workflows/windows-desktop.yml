@@ -40,6 +40,9 @@ jobs:
         run: npm install
       - name: Test motion animation engine
         run: npm test
+      - name: Smoke-test Windows offline speech runtime
+        shell: pwsh
+        run: ./electron/scripts/windows-tts-smoke-test.ps1
       - name: Build and package Windows installer
         run: npm run desktop:package
       - name: Upload installer artifact

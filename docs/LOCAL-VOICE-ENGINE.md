@@ -26,13 +26,13 @@ The application, editor, project format, audio pipeline, and model manager are Z
 
 ## Migration sequence
 
-1. Add a local engine interface and capability registry.
-2. Add a lightweight local TTS engine and voice/model manager.
-3. Verify Windows offline generation and packaging.
-4. Add a commercially usable local cloning engine after licence and language review.
+1. **Windows system-voice tier (in progress):** a first offline WAV path uses installed Windows System.Speech voices through a secure Electron preload/IPC bridge. This provides a no-cloud baseline, but quality and language availability depend on Windows speech packs.
+2. Add a lightweight local neural TTS engine and voice/model manager with separately verified model and voice licences.
+3. Verify offline generation, voice selection, Unicode/Bengali behavior, cancellation, and packaging on real Windows devices.
+4. Add a commercially usable local cloning engine after code/weights/dataset licence and language review.
 5. Migrate voice profiles to local files and update project metadata.
-6. Remove Cartesia endpoints, API key fields, and Cartesia-specific clone PR only after local TTS and cloning pass acceptance tests.
-7. Build Android-specific local inference only after the Windows engine is stable; some larger models may not fit mobile devices.
+6. Remove legacy Cartesia endpoints and API key fields after local neural TTS and cloning pass acceptance tests; do not merge Cartesia-dependent PR #6.
+7. Build Android-native offline inference only after the Windows engine is stable; some larger models may not fit mobile devices.
 
 ## Acceptance tests
 
