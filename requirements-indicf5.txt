@@ -1,6 +1,7 @@
-# IndicF5 Python environment
-# Install a Python 3.10 environment first, then follow the upstream installation guide.
-# https://github.com/AI4Bharat/IndicF5
+# IndicF5 Python environment (Python 3.10 recommended)
+# Install into a dedicated virtual environment. The upstream package pulls
+# the model-specific inference code and dependencies:
+git+https://github.com/AI4Bharat/IndicF5.git
 numpy
 soundfile
 transformers
