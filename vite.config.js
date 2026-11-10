@@ -11,5 +11,13 @@ const motionLauncher = {
 export default defineConfig({
   plugins: [react(), motionLauncher],
   base: './',
-  build: { target: 'es2020' }
+  build: {
+    target: 'es2020',
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        motion: 'motion.html'
+      }
+    }
+  }
 });
