@@ -339,6 +339,12 @@ ipcMain.handle('indicf5:synthesize', async (_event, request = {}) => {
   if (!saved.pythonPath || !saved.modelPath || !saved.referencePath) throw new Error('Select Python, a downloaded IndicF5 model folder and a reference WAV first.');
   await fs.access(saved.pythonPath).catch(() => { throw new Error('The selected Python executable could not be found. Select it again.'); });
   await fs.access(saved.modelPath).catch(() => { throw new Error('The selected IndicF5 model folder could not be found. Select it again.'); });
+  const modelEntries = await fs.readdir(saved.modelPath).catch(() => { throw new Error('Could not read the selected IndicF5 model folder.'); });
+  const modelConfigText = await fs.readFile(path.join(saved.modelPath, 'config.json'), 'utf8').catch(() => { throw new Error('The selected IndicF5 model is missing config.json. Re-select a complete model snapshot.'); });
+  const modelIndexName = ['model.safetensors.index.json', 'pytorch_model.bin.index.json'].find(name => modelEntries.includes(name));
+  const modelIndexText = modelIndexName ? await fs.readFile(path.join(saved.modelPath, modelIndexName), 'utf8').catch(() => { throw new Error('Could not read the selected model weight index.'); }) : null;
+  const modelValidation = validateIndicF5Snapshot(modelEntries, modelConfigText, modelIndexText);
+  if (!modelValidation.ok) throw new Error('IndicF5 model integrity check failed before loading: ' + modelValidation.error);
   await fs.access(saved.referencePath).catch(() => { throw new Error('The selected reference WAV could not be found. Select it again.'); });
   const workerPath = app.isPackaged
     ? path.join(process.resourcesPath, 'python', 'indicf5_worker.py')
