@@ -1,0 +1,21 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isWavFile } = require('./indicf5-engine.cjs');
+
+test('passes paths and text as separate Python arguments without shell interpolation', () => {
+  assert.deepEqual(buildIndicF5Args('C:\\FreeVoice\\runner.py', 'D:\\Models\\IndicF5', 'D:\\Voice\\sample.wav', 'C:\\Temp\\out.wav', 'বাংলা & English', 'আমি ভালো আছি।'), [
+    '-u', 'C:\\FreeVoice\\runner.py', '--model-dir', 'D:\\Models\\IndicF5', '--reference-audio', 'D:\\Voice\\sample.wav', '--output', 'C:\\Temp\\out.wav', '--text', 'বাংলা & English', '--reference-text', 'আমি ভালো আছি।'
+  ]);
+});
+
+test('accepts python.exe only', () => {
+  assert.equal(isPythonExecutable('C:\\Python310\\python.exe'), true);
+  assert.equal(isPythonExecutable('C:\\Python310\\pythonw.exe'), false);
+});
+
+test('validates model directory and WAV extension', () => {
+  assert.equal(isModelDirectory('D:\\Models\\IndicF5'), true);
+  assert.equal(isModelDirectory(''), false);
+  assert.equal(isWavFile('voice.wav'), true);
+  assert.equal(isWavFile('voice.mp3'), false);
+});
