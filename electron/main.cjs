@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
 const { buildPiperArgs, modelConfigPath, describePiperModel, isOnnxModelPath } = require('./piper-engine.cjs');
-const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isIndicF5ModelSnapshot, isWavFile } = require('./indicf5-engine.cjs');
+const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isIndicF5ModelSnapshot, validateIndicF5Snapshot, isWavFile } = require('./indicf5-engine.cjs');
 const { IndicF5Worker } = require('./indicf5-worker.cjs');
 const indicF5Worker = new IndicF5Worker();
 const { promisify } = require('node:util');
@@ -299,10 +299,16 @@ ipcMain.handle('indicf5:choose-model', async () => {
   const modelPath = result.filePaths[0];
   if (!isModelDirectory(modelPath)) throw new Error('Select a local IndicF5 model folder.');
   const entries = await fs.readdir(modelPath).catch(() => { throw new Error('Could not read the selected IndicF5 model folder.'); });
-  if (!isIndicF5ModelSnapshot(entries)) {
-    throw new Error('This folder does not contain a complete IndicF5 model snapshot. Select the downloaded model folder containing config.json and model.safetensors (or pytorch_model.bin). Do not select the parent cache folder.');
-  }
-  return saveIndicF5Settings({ modelPath });
+  const configText = await fs.readFile(path.join(modelPath, 'config.json'), 'utf8').catch(() => {
+    throw new Error('The selected model is missing config.json.');
+  });
+  const indexName = ['model.safetensors.index.json', 'pytorch_model.bin.index.json'].find(name => entries.includes(name));
+  const indexText = indexName
+    ? await fs.readFile(path.join(modelPath, indexName), 'utf8').catch(() => { throw new Error('Could not read the model weight index.'); })
+    : null;
+  const validation = validateIndicF5Snapshot(entries, configText, indexText);
+  if (!validation.ok) throw new Error('IndicF5 model validation failed: ' + validation.error);
+  return saveIndicF5Settings({ modelPath, modelType: validation.modelType });
 });
 
 ipcMain.handle('indicf5:choose-reference', async () => {
