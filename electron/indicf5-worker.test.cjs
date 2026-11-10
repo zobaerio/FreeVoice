@@ -12,7 +12,7 @@ function fakeChild() {
   child.stdin = new Writable({
     write(chunk, _encoding, callback) {
       const request = JSON.parse(String(chunk).trim());
-      process.nextTick(() => child.stdout.write(JSON.stringify({ id: request.id, ok: true, device: 'cpu' }) + '\\n'));
+      process.nextTick(() => child.stdout.write(JSON.stringify({ id: request.id, ok: true, device: 'cpu' }) + '\n'));
       callback();
     }
   });
@@ -42,7 +42,7 @@ test('rejects requests when the worker returns an error', async () => {
   child.stdin = new Writable({
     write(chunk, _encoding, callback) {
       const request = JSON.parse(String(chunk).trim());
-      process.nextTick(() => child.stdout.write(JSON.stringify({ id: request.id, ok: false, error: 'model missing' }) + '\\n'));
+      process.nextTick(() => child.stdout.write(JSON.stringify({ id: request.id, ok: false, error: 'model missing' }) + '\n'));
       callback();
     }
   });
