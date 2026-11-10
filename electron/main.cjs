@@ -328,6 +328,7 @@ ipcMain.handle('indicf5:synthesize', async (_event, request = {}) => {
   if (!refText) throw new Error('Enter the exact transcript spoken in the reference WAV.');
   if (refText.length > 1200) throw new Error('Reference transcript must be 1,200 characters or fewer.');
   if (request.consent !== true) throw new Error('Confirm that the reference voice is yours or you have explicit permission to use it.');
+  if (request.trustModelCode !== true) throw new Error('Review and confirm that you trust this local IndicF5 model snapshot before loading it. Model files can contain executable Python code.');
   const saved = JSON.parse(await fs.readFile(indicF5SettingsFile(), 'utf8').catch(() => '{}'));
   if (!saved.pythonPath || !saved.modelPath || !saved.referencePath) throw new Error('Select Python, a downloaded IndicF5 model folder and a reference WAV first.');
   await fs.access(saved.pythonPath).catch(() => { throw new Error('The selected Python executable could not be found. Select it again.'); });
