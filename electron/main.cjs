@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { execFile, spawn } = require('node:child_process');
 const { buildPiperArgs, modelConfigPath, describePiperModel, isOnnxModelPath } = require('./piper-engine.cjs');
-const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isWavFile } = require('./indicf5-engine.cjs');
+const { buildIndicF5Args, isPythonExecutable, isModelDirectory, isIndicF5ModelSnapshot, isWavFile } = require('./indicf5-engine.cjs');
 const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
@@ -271,7 +271,10 @@ ipcMain.handle('indicf5:choose-model', async () => {
   if (result.canceled || !result.filePaths[0]) return readIndicF5Settings();
   const modelPath = result.filePaths[0];
   if (!isModelDirectory(modelPath)) throw new Error('Select a local IndicF5 model folder.');
-  await fs.access(modelPath);
+  const entries = await fs.readdir(modelPath).catch(() => { throw new Error('Could not read the selected IndicF5 model folder.'); });
+  if (!isIndicF5ModelSnapshot(entries)) {
+    throw new Error('This folder does not contain a complete IndicF5 model snapshot. Select the downloaded model folder containing config.json and model.safetensors (or pytorch_model.bin). Do not select the parent cache folder.');
+  }
   return saveIndicF5Settings({ modelPath });
 });
 
