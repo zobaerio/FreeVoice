@@ -14,11 +14,12 @@ FreeVoice targets local-first voice generation. The application, editor, project
 ## IndicF5 Windows setup
 
 1. Install Python 3.10 and create a dedicated virtual environment.
-2. Install the official AI4Bharat IndicF5 package and its dependencies using the upstream instructions: https://github.com/AI4Bharat/IndicF5. The repository includes requirements-indicf5.txt as a starting point.
-3. Download the official ai4bharat/IndicF5 model snapshot to a local folder before going offline.
-4. In FreeVoice choose the virtual environment's python.exe, the downloaded model folder and a WAV reference recording.
-5. Enter the exact words spoken in the reference WAV. Use only your own voice or a speaker who has explicitly consented.
-6. Generate after setup. The local runner uses local_files_only=True; if files or dependencies are missing it reports an error rather than falling back to a cloud service.
+2. Install the official AI4Bharat IndicF5 package and its dependencies using the upstream instructions: https://github.com/AI4Bharat/IndicF5. The repository includes requirements-indicf5.txt as a starting point; install PyTorch using the build appropriate for your CPU/GPU and Windows setup.
+3. The official Hugging Face model repository is gated: sign in to Hugging Face, review and accept the model's access conditions (which currently require sharing contact information), then authenticate the same Python environment with `hf auth login`. FreeVoice does not ask for, store or transmit your Hugging Face token.
+4. Download the official `ai4bharat/IndicF5` snapshot to a local folder while online, for example with `hf download ai4bharat/IndicF5 --local-dir D:\\Models\\IndicF5`. Confirm that the folder contains `config.json` and all model files before going offline.
+5. In FreeVoice choose the virtual environment's `python.exe`, the downloaded model folder and a WAV reference recording.
+6. Enter the exact words spoken in the reference WAV. Use only your own voice or a speaker who has explicitly consented.
+7. Generate after setup. The local runner uses `local_files_only=True`; if files or dependencies are missing it reports an error rather than falling back to a cloud service.
 
 IndicF5 reference conditioning is not a guarantee of an identical clone. A human Bengali listening test is required before claiming production-quality Bangladeshi pronunciation. Keep the reference WAV on-device and remove it when no longer needed.
 
