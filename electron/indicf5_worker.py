@@ -50,6 +50,7 @@ def handle(req):
 
 def main():
     for line in sys.stdin:
+        req = {}
         try:
             req = json.loads(line)
             result = handle(req)
