@@ -28,3 +28,12 @@
 .voice-item .remove-voice{padding:7px;color:#f0a9b5;background:#3a202d;border-color:#65404b}
 .voice-item .remove-voice svg{width:13px;height:13px}
 @media(max-width:480px){.record-actions{display:grid;grid-template-columns:1fr 1fr}.record-actions>*{width:100%}.voice-item{gap:5px}.voice-item button{padding:7px 6px}}
+
+/* Local Piper neural voice setup */
+.piper-setup{display:grid;gap:9px;margin:13px 0}
+.piper-file{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:11px;background:#0a1b2d;border:1px solid #29445e;border-radius:9px}
+.piper-file>div{min-width:0;flex:1}
+.piper-file b,.piper-file small{display:block}
+.piper-file b{font-size:10px;color:#d8eaff}
+.piper-file small{font-size:9px;color:#829ab5;margin-top:5px;overflow-wrap:anywhere}
+.piper-file .secondary{height:34px;white-space:nowrap;padding:0 10px;font-size:9px}
