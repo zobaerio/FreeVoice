@@ -60,6 +60,12 @@
       "createStartMenuShortcut": true,
       "shortcutName": "FreeVoice",
       "uninstallDisplayName": "FreeVoice"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "electron/indicf5_runner.py",
+        "to": "python/indicf5_runner.py"
+      }
+    ]
   }
 }

@@ -11,6 +11,7 @@ on:
       - 'motion.html'
       - 'package.json'
       - 'vite.config.js'
+      - 'requirements-indicf5.txt'
       - '.github/workflows/windows-desktop.yml'
   push:
     branches: [main, feature/windows-desktop-installer]
@@ -38,8 +39,10 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
-      - name: Test motion animation engine
+      - name: Test motion and local engine helpers
         run: npm test
+      - name: Validate IndicF5 Python runner syntax
+        run: python -m py_compile electron/indicf5_runner.py
       - name: Smoke-test Windows offline speech runtime
         shell: pwsh
         run: ./electron/scripts/windows-tts-smoke-test.ps1
