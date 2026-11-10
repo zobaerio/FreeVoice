@@ -26,8 +26,8 @@ The application, editor, project format, audio pipeline, and model manager are Z
 
 ## Migration sequence
 
-1. **Windows system-voice tier (in progress):** a first offline WAV path uses installed Windows System.Speech voices through a secure Electron preload/IPC bridge. This provides a no-cloud baseline, but quality and language availability depend on Windows speech packs.
-2. Add a lightweight local neural TTS engine and voice/model manager with separately verified model and voice licences.
+1. **Windows system-voice tier:** offline WAV generation uses installed Windows System.Speech voices through a secure Electron preload/IPC bridge. Quality and language availability depend on Windows speech packs.
+2. **Piper neural TTS adapter (in progress):** Windows desktop can point to a user-installed Piper executable and a local `.onnx` voice model with its matching `.onnx.json` config. The app invokes Piper as a local child process (no shell, no network request), validates the model/config pair, and writes WAV output to a temporary app directory. Runtime and models are not bundled or downloaded by FreeVoice. Piper's current official standard voice list does not include Bengali; do not present it as a Bengali solution. Piper runtime is GPL-3.0; model/voice licences are separate and must be reviewed individually before redistribution or commercial use. See the official project and CLI guide: https://github.com/OHF-Voice/piper1-gpl and https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/CLI.md.
 3. Verify offline generation, voice selection, Unicode/Bengali behavior, cancellation, and packaging on real Windows devices.
 4. Add a commercially usable local cloning engine after code/weights/dataset licence and language review.
 5. Migrate voice profiles to local files and update project metadata.

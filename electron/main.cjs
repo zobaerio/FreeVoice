@@ -2,7 +2,8 @@ const { app, BrowserWindow, dialog, shell, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
-const { execFile } = require('node:child_process');
+const { execFile, spawn } = require('node:child_process');
+const { buildPiperArgs, modelConfigPath, describePiperModel, isOnnxModelPath } = require('./piper-engine.cjs');
 const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
@@ -84,6 +85,130 @@ ipcMain.handle('local-tts:synthesize', async (_event, request = {}) => {
       throw new Error('Windows Speech runtime is unavailable. Install a Windows speech voice in Settings → Time & language → Speech, then restart FreeVoice.');
     }
     throw new Error(message.slice(0, 500));
+  } finally {
+    await fs.unlink(outputPath).catch(() => {});
+  }
+});
+
+
+const piperSettingsFile = () => path.join(app.getPath('userData'), 'piper-settings.json');
+
+async function readPiperSettings() {
+  try {
+    const saved = JSON.parse(await fs.readFile(piperSettingsFile(), 'utf8'));
+    const runtimeExists = saved.runtimePath && await fs.access(saved.runtimePath).then(() => true, () => false);
+    const modelExists = saved.modelPath && await fs.access(saved.modelPath).then(() => true, () => false);
+    const configPath = saved.modelPath ? modelConfigPath(saved.modelPath) : '';
+    const configExists = configPath && await fs.access(configPath).then(() => true, () => false);
+    return {
+      ready: Boolean(runtimeExists && modelExists && configExists),
+      runtimeName: saved.runtimePath ? path.basename(saved.runtimePath) : '',
+      modelName: saved.modelPath ? path.basename(saved.modelPath) : '',
+      language: saved.language || 'unknown',
+      sampleRate: saved.sampleRate || null,
+      speakers: saved.speakers || 1
+    };
+  } catch {
+    return { ready: false, runtimeName: '', modelName: '', language: 'unknown', sampleRate: null, speakers: 1 };
+  }
+}
+
+async function savePiperSettings(patch) {
+  let current = {};
+  try { current = JSON.parse(await fs.readFile(piperSettingsFile(), 'utf8')); } catch {}
+  const next = { ...current, ...patch };
+  await fs.mkdir(app.getPath('userData'), { recursive: true });
+  const tempPath = piperSettingsFile() + '.tmp';
+  await fs.writeFile(tempPath, JSON.stringify(next, null, 2), 'utf8');
+  await fs.rename(tempPath, piperSettingsFile());
+  return readPiperSettings();
+}
+
+ipcMain.handle('piper:get-settings', async () => readPiperSettings());
+
+ipcMain.handle('piper:choose-runtime', async () => {
+  if (process.platform !== 'win32') throw new Error('Piper desktop setup is currently Windows-only.');
+  const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    title: 'Select the local Piper executable',
+    properties: ['openFile'],
+    filters: [{ name: 'Windows executable', extensions: ['exe'] }]
+  });
+  if (result.canceled || !result.filePaths[0]) return readPiperSettings();
+  const runtimePath = result.filePaths[0];
+  await fs.access(runtimePath);
+  const settings = await savePiperSettings({ runtimePath });
+  return settings;
+});
+
+ipcMain.handle('piper:choose-model', async () => {
+  if (process.platform !== 'win32') throw new Error('Piper desktop setup is currently Windows-only.');
+  const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    title: 'Select a Piper ONNX voice model',
+    properties: ['openFile'],
+    filters: [{ name: 'Piper ONNX model', extensions: ['onnx'] }]
+  });
+  if (result.canceled || !result.filePaths[0]) return readPiperSettings();
+  const modelPath = result.filePaths[0];
+  if (!isOnnxModelPath(modelPath)) throw new Error('Choose a .onnx Piper voice model.');
+  const configPath = modelConfigPath(modelPath);
+  const configText = await fs.readFile(configPath, 'utf8').catch(() => {
+    throw new Error('The matching model config is missing. Keep the model and its .onnx.json file in the same folder.');
+  });
+  let config;
+  try { config = JSON.parse(configText); } catch {
+    throw new Error('The Piper .onnx.json model config is not valid JSON.');
+  }
+  const metadata = describePiperModel(config);
+  return savePiperSettings({ modelPath, ...metadata });
+});
+
+ipcMain.handle('piper:synthesize', async (_event, request = {}) => {
+  if (process.platform !== 'win32') throw new Error('Piper local neural TTS is currently available in the Windows desktop app only.');
+  const text = typeof request.text === 'string' ? request.text.trim() : '';
+  if (!text) throw new Error('Enter a script before generating audio.');
+  if (text.length > 5000) throw new Error('Maximum 5,000 characters per generation.');
+  const saved = JSON.parse(await fs.readFile(piperSettingsFile(), 'utf8').catch(() => '{}'));
+  if (!saved.runtimePath || !saved.modelPath) throw new Error('Select the Piper executable and a local .onnx voice model first.');
+  await fs.access(saved.runtimePath).catch(() => { throw new Error('The selected Piper executable could not be found. Select it again.'); });
+  await fs.access(saved.modelPath).catch(() => { throw new Error('The selected Piper model could not be found. Select it again.'); });
+  await fs.access(modelConfigPath(saved.modelPath)).catch(() => { throw new Error('The selected Piper model config is missing. Re-select a valid model.'); });
+
+  const outputDir = path.join(app.getPath('temp'), 'FreeVoice', 'generated');
+  await fs.mkdir(outputDir, { recursive: true });
+  const fileName = 'FreeVoice-Neural-' + Date.now() + '-' + crypto.randomUUID().slice(0, 8) + '.wav';
+  const outputPath = path.join(outputDir, fileName);
+  const args = buildPiperArgs(saved.modelPath, outputPath, text);
+
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn(saved.runtimePath, args, { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
+      let stderr = '';
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        child.kill();
+        settled = true;
+        reject(new Error('Piper took too long. Try a shorter script or a smaller voice model.'));
+      }, 300000);
+      child.stderr.on('data', chunk => { if (stderr.length < 12000) stderr += chunk.toString(); });
+      child.on('error', error => {
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        reject(new Error('Could not start Piper. Check that the selected executable is a working Piper Windows build. ' + error.message));
+      });
+      child.on('close', code => {
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        if (code === 0) resolve();
+        else reject(new Error(('Piper exited with code ' + code + ': ' + stderr).slice(0, 700)));
+      });
+    });
+    const stat = await fs.stat(outputPath);
+    if (!stat.isFile() || stat.size < 44) throw new Error('Piper did not create a valid WAV file.');
+    const data = new Uint8Array(await fs.readFile(outputPath));
+    return { fileName, mimeType: 'audio/wav', data };
   } finally {
     await fs.unlink(outputPath).catch(() => {});
   }
