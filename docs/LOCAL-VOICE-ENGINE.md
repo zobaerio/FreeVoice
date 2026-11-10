@@ -37,6 +37,7 @@ IndicF5 reference conditioning is not a guarantee of an identical clone. A human
 ## Safety and licence requirements
 
 - Only use the reference speaker's own voice or obtain explicit permission.
+- IndicF5 is loaded with the upstream `trust_remote_code=True` integration. Select only a model snapshot obtained from the official AI4Bharat Hugging Face repository; a model folder can contain executable Python code.
 - Do not use this feature for impersonation, fraud or deceptive identity claims.
 - Include upstream model/runtime notices when redistributing any dependency.
 - Check the complete model, code, dataset and upstream component licences before bundling weights in a commercial installer.
