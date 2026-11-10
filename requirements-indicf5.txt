@@ -1,0 +1,7 @@
+# IndicF5 Python environment
+# Install a Python 3.10 environment first, then follow the upstream installation guide.
+# https://github.com/AI4Bharat/IndicF5
+numpy
+soundfile
+transformers
+torch
