@@ -1,11 +1,11 @@
 # FreeVoice — Zobaerio Technologies
 
-> **Offline migration status:** The Windows desktop build now has a first local TTS path using installed Windows speech voices (System.Speech/SAPI) and WAV output. It does not call Cartesia or OpenAI for desktop speech generation. This is a lightweight system-voice tier, not neural synthesis or voice cloning. Android/web still use the legacy provider integration until their local engines are implemented and tested.
+ > **Offline migration status:** Windows desktop includes local System.Speech/SAPI WAV generation and an optional Piper neural TTS integration for user-selected local ONNX models and a local Piper executable. Neither desktop path calls Cartesia or OpenAI for speech generation. Piper is not bundled; the user must supply the runtime and matching model/config files. Bengali support is not implied by Piper's current official voice list. Android/web still use the legacy provider integration until their local engines are implemented and tested.
 
 FreeVoice is available as an installable Android app and Windows desktop app. The complete interface is bundled locally in each app. **No Vercel, website hosting, or Zobaerio backend is required.**
 
 ## Features
-- Windows desktop: offline WAV text-to-speech through installed Windows system voices.
+- Windows desktop: offline WAV text-to-speech through installed Windows system voices, plus optional local Piper neural TTS using a user-selected ONNX voice model.
 - Android/web preview: legacy Cartesia Sonic 3.6 text-to-speech, MP3/WAV output while local mobile engines are being developed.
 - Android/web preview: legacy Cartesia-based personal voice cloning; not available in the Windows offline desktop mode.
 - Saved voice profile IDs are kept in the device's local library; the Cartesia API key remains session-only.
