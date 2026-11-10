@@ -1,16 +1,17 @@
 # FreeVoice — Zobaerio Technologies
 
-> **Offline migration status:** The current app still uses the legacy Cartesia TTS integration and optional OpenAI script writer. Fully local/offline voice generation and local script writing are not integrated yet. Do not treat the current build as an offline voice app. The migration plan is tracked in `docs/LOCAL-VOICE-ENGINE.md`; Cartesia-dependent PR #6 must remain unmerged until a tested local replacement is ready.
+> **Offline migration status:** The Windows desktop build now has a first local TTS path using installed Windows speech voices (System.Speech/SAPI) and WAV output. It does not call Cartesia or OpenAI for desktop speech generation. This is a lightweight system-voice tier, not neural synthesis or voice cloning. Android/web still use the legacy provider integration until their local engines are implemented and tested.
 
 FreeVoice is available as an installable Android app and Windows desktop app. The complete interface is bundled locally in each app. **No Vercel, website hosting, or Zobaerio backend is required.**
 
 ## Features
-- Cartesia Sonic 3.6 text-to-speech, MP3/WAV output.
-- Personal voice cloning: record an approximately 10-second sample or upload audio, create a private Cartesia voice clone, and select saved voice profiles in Text to Voice.
+- Windows desktop: offline WAV text-to-speech through installed Windows system voices.
+- Android/web preview: legacy Cartesia Sonic 3.6 text-to-speech, MP3/WAV output while local mobile engines are being developed.
+- Android/web preview: legacy Cartesia-based personal voice cloning; not available in the Windows offline desktop mode.
 - Saved voice profile IDs are kept in the device's local library; the Cartesia API key remains session-only.
 - Bengali, English, Hindi and additional language selections.
 - Voice ID, emotion and speaking-speed controls.
-- Optional OpenAI script writer.
+- Android/web preview: optional OpenAI script writer. Windows desktop script writing is manual/offline for now.
 - Audio preview, local script history, save/share generated audio.
 - API keys entered by the user in the app; never committed to GitHub or sent to a Zobaerio backend.
 
@@ -21,7 +22,7 @@ Open the repository's **Releases** page and download:
 
 Windows installer provides a normal setup wizard, Start Menu shortcut, Desktop shortcut, installation-folder selection, and Windows uninstall entry.
 
-## Motion Graphics Studio (Windows-first)
+## Windows offline voice engine (first local tier)\n\nThe Windows desktop app lists speech voices installed in Windows and generates WAV audio locally through the Windows System.Speech runtime. No Cartesia API key, OpenAI API key, cloud account, or internet connection is required for this desktop speech-generation path. Available languages and voice quality depend on the speech voices installed in Windows. Bengali is only available if a compatible Windows Bengali speech voice is installed. This tier is not neural voice cloning.\n\n## Motion Graphics Studio (Windows-first)
 
 Open **Motion Studio** from the FreeVoice desktop/home screen. The first foundation release includes:
 - An independent 16:9 scene editor with editable text, rectangles and circles.
@@ -61,4 +62,4 @@ A push to main builds both Android APK and Windows installer. Each workflow publ
 ## API keys and privacy
 Open API Settings in the app and enter your own Cartesia API key. OpenAI key is optional for AI script writing. Keys remain in app memory for the current session only and are not saved to disk; re-enter after restarting. Requests go directly from the app to the respective provider. Do not distribute an app prefilled with your private key.
 
-Internet is required for AI generation. The app interface and script history are local; voice generation is not offline. API usage is billed/limited by your own provider accounts. GitHub Actions creates unsigned Windows setup installers; Windows may show a SmartScreen warning for an unsigned app. Code signing can be added later.
+Windows desktop offline TTS runs locally. Android/web legacy AI generation still requires internet and provider API keys until their local replacements are complete. GitHub Actions creates unsigned Windows setup installers; Windows may show a SmartScreen warning for an unsigned app. Code signing can be added later.
