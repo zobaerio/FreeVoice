@@ -4,6 +4,8 @@ FreeVoice is available as an installable Android app and Windows desktop app. Th
 
 ## Features
 - Cartesia Sonic 3.6 text-to-speech, MP3/WAV output.
+- Personal voice cloning: record an approximately 10-second sample or upload audio, create a private Cartesia voice clone, and select saved voice profiles in Text to Voice.
+- Saved voice profile IDs are kept in the device's local library; the Cartesia API key remains session-only.
 - Bengali, English, Hindi and additional language selections.
 - Voice ID, emotion and speaking-speed controls.
 - Optional OpenAI script writer.
