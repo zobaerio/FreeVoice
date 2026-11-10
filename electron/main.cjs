@@ -48,17 +48,23 @@ ipcMain.handle('local-tts:synthesize', async (_event, request = {}) => {
   if (text.length > 5000) throw new Error('Maximum 5,000 characters per generation.');
   const voiceName = typeof request.voiceName === 'string' ? request.voiceName.slice(0, 256) : '';
   const rate = Math.max(-10, Math.min(10, Number.isFinite(Number(request.rate)) ? Math.round(Number(request.rate)) : 0));
+  const language = typeof request.language === 'string' && /^[a-z]{2}(-[A-Za-z0-9]{2,8})?$/i.test(request.language) ? request.language : '';
   const outputDir = path.join(app.getPath('temp'), 'FreeVoice', 'generated');
   await fs.mkdir(outputDir, { recursive: true });
   const fileName = 'FreeVoice-' + Date.now() + '-' + crypto.randomUUID().slice(0, 8) + '.wav';
   const outputPath = path.join(outputDir, fileName);
-  const payload = JSON.stringify({ text, voiceName, rate, outputPath });
+  const payload = JSON.stringify({ text, voiceName, rate, language, outputPath });
   const script = `
     $ErrorActionPreference = 'Stop'
     Add-Type -AssemblyName System.Speech
     $payload = [Environment]::GetEnvironmentVariable('FREEVOICE_TTS_PAYLOAD') | ConvertFrom-Json
     $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
     if ($payload.voiceName) { $synth.SelectVoice([string]$payload.voiceName) }
+    elseif ($payload.language) {
+      $candidate = $synth.GetInstalledVoices() | Where-Object { $_.Enabled -and ($_.VoiceInfo.Culture.Name -like ($payload.language + '*') -or $_.VoiceInfo.Culture.TwoLetterISOLanguageName -eq $payload.language) } | Select-Object -First 1
+      if (!$candidate) { throw ('No installed Windows speech voice was found for language ' + $payload.language + '. Install that language voice in Windows Settings or select a different language.') }
+      $synth.SelectVoice($candidate.VoiceInfo.Name)
+    }
     $synth.Rate = [int]$payload.rate
     $synth.Volume = 100
     $synth.SetOutputToWaveFile([string]$payload.outputPath)
