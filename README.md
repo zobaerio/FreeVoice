@@ -1,6 +1,6 @@
 # FreeVoice — Zobaerio Technologies
 
- > **Offline migration status:** Windows desktop includes local System.Speech/SAPI WAV generation and an optional Piper neural TTS integration for user-selected local ONNX models and a local Piper executable. Neither desktop path calls Cartesia or OpenAI for speech generation. Piper is not bundled; the user must supply the runtime and matching model/config files. Bengali support is not implied by Piper's current official voice list. Android/web still use the legacy provider integration until their local engines are implemented and tested.
+> **Offline migration status:** Windows desktop includes local System.Speech/SAPI WAV generation and an optional Piper neural TTS integration for user-selected local ONNX models and a local Piper executable. Neither desktop path calls Cartesia or OpenAI for speech generation. Piper is not bundled; the user must supply the runtime and matching model/config files. Bengali support is not implied by Piper's current official voice list. Android/web still use the legacy provider integration until their local engines are implemented and tested.
 
 FreeVoice is available as an installable Android app and Windows desktop app. The complete interface is bundled locally in each app. **No Vercel, website hosting, or Zobaerio backend is required.**
 
